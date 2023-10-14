@@ -58,7 +58,9 @@ async function handleEmail(message: EmailMessage, env: Env, ctx: ExecutionContex
 }
 
 async function sendToSplunk(env: Env, reportRows: DmarcRecordRow[]) {
-  const resp = fetch(env.SPLUNK_URL, {method: 'POST', body: JSON.stringify(reportRows), headers:{'Authorization': `Splunk ${env.HEC_TOKEN}`}})
+  const resp = await fetch(env.SPLUNK_URL, {method: 'POST', body: JSON.stringify(reportRows), headers:{'Authorization': `Splunk ${env.HEC_TOKEN}`}})
+  const data = await resp.json()
+  console.log(data)
 }
 
 async function getDMARCReportXML(attachment: Attachment) {
