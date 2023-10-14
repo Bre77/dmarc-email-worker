@@ -1,18 +1,18 @@
-import * as PostalMime from 'postal-mime'
 import * as mimeDb from 'mime-db'
+import * as PostalMime from 'postal-mime'
 
-import * as unzipit from 'unzipit'
 import * as pako from 'pako'
+import * as unzipit from 'unzipit'
 
 import { XMLParser } from 'fast-xml-parser'
 
 import {
-  Env,
-  Attachment,
-  DmarcRecordRow,
   AlignmentType,
-  DispositionType,
+  Attachment,
   DMARCResultType,
+  DispositionType,
+  DmarcRecordRow,
+  Env,
   PolicyOverrideType,
 } from './types'
 
@@ -38,13 +38,13 @@ async function handleEmail(message: EmailMessage, env: Env, ctx: ExecutionContex
   const attachment = email.attachments[0]
 
   // save on R2
-  if (env.R2_BUCKET) {
+  /*if (env.R2_BUCKET) {
     const date = new Date()
     await env.R2_BUCKET.put(
       `${date.getUTCFullYear()}/${date.getUTCMonth() + 1}/${attachment.filename}`,
       attachment.content
     )
-  }
+  }*/
 
   // get xml
   const reportJSON = await getDMARCReportXML(attachment)
@@ -53,7 +53,12 @@ async function handleEmail(message: EmailMessage, env: Env, ctx: ExecutionContex
   const report = getReportRows(reportJSON)
 
   // send to analytics engine
-  await sendToAnalyticsEngine(env, report)
+  //await sendToAnalyticsEngine(env, report)
+  await sendToSplunk(env, report)
+}
+
+async function sentToSplunk(env: Env, reportRows: DmarcRecordRow[]) {
+  const resp = fetch(env.SPLUNK_URL, {method: 'POST', body: JSON.stringify(reportRows), headers:{'Authorization': `Splunk ${env.HEC_TOKEN}`}})
 }
 
 async function getDMARCReportXML(attachment: Attachment) {
