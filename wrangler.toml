@@ -1,3 +1,7 @@
 name = "dmarc-email-worker"
 main = "src/index.ts"
 compatibility_date = "2023-03-16"
+
+[vars]
+HEC_TOKEN = "token"
+HEC_URL = "https://splunk/services/collector/event"

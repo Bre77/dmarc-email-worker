@@ -37,15 +37,6 @@ async function handleEmail(message: EmailMessage, env: Env, ctx: ExecutionContex
   }
   const attachment = email.attachments[0]
 
-  // save on R2
-  /*if (env.R2_BUCKET) {
-    const date = new Date()
-    await env.R2_BUCKET.put(
-      `${date.getUTCFullYear()}/${date.getUTCMonth() + 1}/${attachment.filename}`,
-      attachment.content
-    )
-  }*/
-
   // get xml
   const reportJSON = await getDMARCReportXML(attachment)
 
@@ -53,14 +44,15 @@ async function handleEmail(message: EmailMessage, env: Env, ctx: ExecutionContex
   const report = getReportRows(reportJSON)
 
   // send to analytics engine
-  //await sendToAnalyticsEngine(env, report)
   await sendToSplunk(env, report)
 }
 
 async function sendToSplunk(env: Env, reportRows: DmarcRecordRow[]) {
-  const resp = await fetch(env.SPLUNK_URL, {method: 'POST', body: JSON.stringify(reportRows), headers:{'Authorization': `Splunk ${env.HEC_TOKEN}`}})
-  const data = await resp.json()
-  console.log(data)
+  const payload = reportRows.map(report => ({
+    event: report
+  }))
+  const resp = await fetch(env.HEC_URL, {method: 'POST', body: JSON.stringify(payload), headers:{'Authorization': `Splunk ${env.HEC_TOKEN}`}})
+  console.log(await resp.json())
 }
 
 async function getDMARCReportXML(attachment: Attachment) {
@@ -144,46 +136,4 @@ function getReportRows(report: any): DmarcRecordRow[] {
   }
 
   return listEvents
-}
-
-async function sendToAnalyticsEngine(env: Env, reportRows: DmarcRecordRow[]) {
-  if (!env.DMARC_ANALYTICS) {
-    return
-  }
-
-  reportRows.forEach((recordRow, index) => {
-    const blobs: string[] = []
-    const doubles: number[] = []
-    const indexes: string[] = []
-
-    indexes.push(encodeURI(`${recordRow.reportMetadataReportId}-${index}`).slice(0, 32)) // max size 32 bytes
-
-    blobs.push(recordRow.reportMetadataReportId)
-    blobs.push(recordRow.reportMetadataOrgName)
-    doubles.push(recordRow.reportMetadataDateRangeBegin)
-    doubles.push(recordRow.reportMetadataDateRangeEnd)
-    blobs.push(recordRow.reportMetadataError)
-
-    blobs.push(recordRow.policyPublishedDomain)
-    doubles.push(recordRow.policyPublishedADKIM)
-    doubles.push(recordRow.policyPublishedASPF)
-    doubles.push(recordRow.policyPublishedP)
-    doubles.push(recordRow.policyPublishedSP)
-    doubles.push(recordRow.policyPublishedPct)
-
-    blobs.push(recordRow.recordRowSourceIP)
-    doubles.push(recordRow.recordRowCount)
-    doubles.push(recordRow.recordRowPolicyEvaluatedDKIM)
-    doubles.push(recordRow.recordRowPolicyEvaluatedSPF)
-    doubles.push(recordRow.recordRowPolicyEvaluatedDisposition)
-    doubles.push(recordRow.recordRowPolicyEvaluatedReasonType)
-    blobs.push(recordRow.recordIdentifiersEnvelopeTo)
-    blobs.push(recordRow.recordIdentifiersHeaderFrom)
-
-    env.DMARC_ANALYTICS.writeDataPoint({
-      blobs: blobs,
-      doubles: doubles,
-      indexes: indexes,
-    })
-  })
 }
