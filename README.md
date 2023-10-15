@@ -6,9 +6,9 @@ It makes use of:
 
 - [Cloudflare Workers](https://workers.cloudflare.com/)
 - [Email Workers](https://developers.cloudflare.com/email-routing/email-workers/)
-- [Splunk](https://splunk.com/)
+- [Splunk](https://docs.splunk.com/Documentation/Splunk/latest/Data/UsetheHTTPEventCollector)
 
-More details on the [blog post](https://blog.cloudflare.com/how-we-built-dmarc-management/).
+More details about the original on the [blog post](https://blog.cloudflare.com/how-we-built-dmarc-management/).
 
 ## Install instructions
 
